@@ -312,7 +312,7 @@ export class AgentRuntime {
 				try {
 					const localResponse = await runLocalInference({
 						model: this.config.inference.local_model,
-						prompt: buildLocalPrompt(text, this.config),
+						prompt: buildLocalPrompt(text, this.config, activeRoleTemplate),
 						timeoutMs: this.config.inference.local_timeout_ms,
 					});
 					resultText = localResponse.text;
