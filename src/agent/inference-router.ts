@@ -53,10 +53,12 @@ export async function decideInferenceRoute(input: InferenceRoutingInput): Promis
 	}
 
 	if (forcedMode === "local") {
-		if (input.toolRequired || input.highConsequence || CLOUD_KEYWORD_RE.test(input.text)) {
+		// Safety flags still win over caller override - toolRequired/highConsequence are
+		// system constraints, not heuristics, and must not be bypassed via metadata.
+		if (input.toolRequired || input.highConsequence) {
 			return {
 				route: "cloud",
-				reason: input.toolRequired ? "tool_required" : input.highConsequence ? "high_consequence" : "cloud_keyword",
+				reason: input.toolRequired ? "tool_required" : "high_consequence",
 				tokenEstimate,
 				effectiveMode: mode,
 				usedClassifier: false,

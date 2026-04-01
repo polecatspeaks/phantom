@@ -49,6 +49,28 @@ describe("decideInferenceRoute", () => {
 		expect(decision.reason).toBe("conversational");
 	});
 
+	test("forceInferenceMode=local overrides keyword heuristics", async () => {
+		// Keyword heuristics must not block a caller-supplied forced_local override.
+		const decision = await decideInferenceRoute({
+			text: "build and deploy this",
+			config: baseConfig,
+			metadata: { forceInferenceMode: "local" },
+		});
+		expect(decision.route).toBe("local");
+		expect(decision.reason).toBe("forced_local");
+	});
+
+	test("forceInferenceMode=local is still blocked by toolRequired", async () => {
+		const decision = await decideInferenceRoute({
+			text: "hello",
+			config: baseConfig,
+			metadata: { forceInferenceMode: "local" },
+			toolRequired: true,
+		});
+		expect(decision.route).toBe("cloud");
+		expect(decision.reason).toBe("tool_required");
+	});
+
 	test("uses classifier near threshold when ambiguous", async () => {
 		const classifier = {
 			async classify(): Promise<{ route: "local" | "cloud"; confidence: number; reason: string }> {
