@@ -33,7 +33,10 @@ export type InferenceRoutingInput = {
 	classifier?: LocalClassifier;
 };
 
-const CLOUD_KEYWORD_RE = /\b(build|install|analy[sz]e|plan|execute|debug|refactor|deploy|migrate)\b/i;
+// Single-word cloud signals: tasks that imply tool use, long output, or multi-step execution.
+// Multi-word phrases (set up, walk through) handled with the trailing alternation.
+const CLOUD_KEYWORD_RE =
+	/\b(build|install|analy[sz]e|plan|execute|debug|refactor|deploy|migrate|setup|configure|create|explain|implement|generate)\b|set\s+up\b|walk\s+(?:me\s+)?through\b/i;
 const CONVERSATIONAL_RE = /^(hi|hello|hey|thanks|thank you|how are you|what(?:'s| is) up|status\??)$/i;
 
 export async function decideInferenceRoute(input: InferenceRoutingInput): Promise<InferenceDecision> {

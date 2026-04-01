@@ -71,6 +71,24 @@ describe("decideInferenceRoute", () => {
 		expect(decision.reason).toBe("tool_required");
 	});
 
+	test("routes 'set up' phrasing to cloud", async () => {
+		const decision = await decideInferenceRoute({
+			text: "set up log rotation for the phantom service",
+			config: baseConfig,
+		});
+		expect(decision.route).toBe("cloud");
+		expect(decision.reason).toBe("cloud_keyword");
+	});
+
+	test("routes 'walk me through' phrasing to cloud", async () => {
+		const decision = await decideInferenceRoute({
+			text: "walk me through how the inference router decides local vs cloud",
+			config: baseConfig,
+		});
+		expect(decision.route).toBe("cloud");
+		expect(decision.reason).toBe("cloud_keyword");
+	});
+
 	test("uses classifier near threshold when ambiguous", async () => {
 		const classifier = {
 			async classify(): Promise<{ route: "local" | "cloud"; confidence: number; reason: string }> {
