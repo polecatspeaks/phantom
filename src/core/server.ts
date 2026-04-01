@@ -167,7 +167,7 @@ async function handleTrigger(req: Request): Promise<Response> {
 		return Response.json({ status: "error", message: "Trigger not configured" }, { status: 503 });
 	}
 
-	let body: { task?: string; delivery?: { channel?: string; target?: string }; source?: string };
+	let body: { task?: string; delivery?: { channel?: string; target?: string }; source?: string; conversationId?: string };
 	try {
 		body = (await req.json()) as typeof body;
 	} catch {
@@ -178,7 +178,8 @@ async function handleTrigger(req: Request): Promise<Response> {
 		return Response.json({ status: "error", message: "Missing required field: task" }, { status: 400 });
 	}
 
-	const conversationId = `trigger:${Date.now()}`;
+	// Allow callers to pass a stable conversationId for session continuity (e.g. per Discord channel)
+	const conversationId = body.conversationId ?? `trigger:${Date.now()}`;
 	const source = body.source ?? "http";
 
 	try {
