@@ -6,6 +6,8 @@ import { loadMcpConfig } from "../mcp/config.ts";
 import type { PhantomMcpServer } from "../mcp/server.ts";
 import type { MemoryHealth } from "../memory/types.ts";
 import { handleUiRequest } from "../ui/serve.ts";
+import { handleDashboardRequest } from "./dashboard-api.ts";
+import { getDatabase } from "../db/connection.ts";
 
 const VERSION = "0.18.2";
 
@@ -139,6 +141,20 @@ export function startServer(config: PhantomConfig, startedAt: number): ReturnTyp
 
 			if (url.pathname.startsWith("/ui")) {
 				return handleUiRequest(req);
+			}
+
+			if (url.pathname.startsWith("/api/dashboard")) {
+				if (!triggerAuth) return Response.json({ error: "Auth not initialized" }, { status: 503 });
+				const auth = await triggerAuth.authenticate(req);
+				if (!auth.authenticated) {
+					return Response.json({ error: auth.error }, { status: 401 });
+				}
+				if (!triggerAuth.hasScope(auth, "read")) {
+					return Response.json({ error: "Insufficient scope: read required" }, { status: 403 });
+				}
+				const db = getDatabase();
+				const liveChannels: Record<string, boolean> = channelHealthProvider ? channelHealthProvider() : {};
+				return handleDashboardRequest(req, url, db, config.channel_roles, liveChannels);
 			}
 
 			return Response.json({ error: "Not found" }, { status: 404 });
