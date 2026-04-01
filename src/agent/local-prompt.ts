@@ -13,16 +13,24 @@ const BASE_LOCAL_PROMPT = `You are a helpful AI assistant. Answer concisely and 
 
 ${BASE_LOCAL_RULES}`;
 
+export type LocalPrompt = {
+	system: string;
+	userText: string;
+};
+
 export function buildLocalPrompt(
 	userText: string,
 	config?: Pick<PhantomConfig, "name">,
 	roleTemplate?: RoleTemplate | null,
-): string {
+): LocalPrompt {
 	if (roleTemplate?.systemPromptSection) {
-		// Use the role's full identity/capabilities/communication section
-		return `${roleTemplate.systemPromptSection}\n\n${BASE_LOCAL_RULES}\n\nUser: ${userText}`;
+		// Role provides full system prompt - split system/user for /api/chat
+		return {
+			system: `${roleTemplate.systemPromptSection}\n\n${BASE_LOCAL_RULES}`,
+			userText,
+		};
 	}
 	const identity = config?.name ? `Your name is ${config.name}.` : "";
-	const systemPrompt = identity ? `${identity}\n${BASE_LOCAL_PROMPT}` : BASE_LOCAL_PROMPT;
-	return `${systemPrompt}\n\nUser: ${userText}`;
+	const system = identity ? `${identity}\n${BASE_LOCAL_PROMPT}` : BASE_LOCAL_PROMPT;
+	return { system, userText };
 }

@@ -57,7 +57,7 @@ function splitMessage(text: string, maxLen = 1990): string[] {
 	return chunks;
 }
 
-async function sendToPhantom(text: string, channelId: string): Promise<string> {
+async function sendToPhantom(text: string, channelId: string, author: string): Promise<string> {
 	const resp = await fetch(`${PHANTOM_URL}/trigger`, {
 		method: "POST",
 		headers: {
@@ -65,7 +65,7 @@ async function sendToPhantom(text: string, channelId: string): Promise<string> {
 			Authorization: `Bearer ${PHANTOM_TOKEN}`,
 		},
 		body: JSON.stringify({
-			task: text,
+			task: `[${author}]: ${text}`,
 			source: "discord",
 			conversationId: conversationId(channelId),
 			delivery: { channel: "discord" }, // suppress default Slack delivery
@@ -121,7 +121,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
 	}
 
 	try {
-		const response = await sendToPhantom(text, message.channelId);
+		const response = await sendToPhantom(text, message.channelId, message.author.username);
 		const chunks = splitMessage(response);
 		// First chunk as a reply, rest as follow-ups
 		await message.reply({ content: chunks[0], allowedMentions: { repliedUser: false } });

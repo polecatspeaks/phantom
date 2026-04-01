@@ -3,7 +3,10 @@ import { normalizeLocalInferenceError } from "./local-inference-error.ts";
 export type LocalInferenceRequest = {
 	baseUrl?: string;
 	model: string;
+	/** User message text */
 	prompt: string;
+	/** Optional system prompt - uses /api/chat when provided for better instruction following */
+	system?: string;
 	timeoutMs: number;
 };
 
@@ -18,14 +21,25 @@ export async function runLocalInference(request: LocalInferenceRequest): Promise
 	const timeout = setTimeout(() => controller.abort(), request.timeoutMs);
 
 	try {
-		const response = await fetch(`${baseUrl}/api/generate`, {
+		// Use /api/chat when a system prompt is provided - better instruction following
+		// than /api/generate which concatenates everything into a raw completion prompt.
+		const useChat = Boolean(request.system);
+		const endpoint = useChat ? `${baseUrl}/api/chat` : `${baseUrl}/api/generate`;
+		const body = useChat
+			? {
+					model: request.model,
+					messages: [
+						{ role: "system", content: request.system },
+						{ role: "user", content: request.prompt },
+					],
+					stream: false,
+			  }
+			: { model: request.model, prompt: request.prompt, stream: false };
+
+		const response = await fetch(endpoint, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				model: request.model,
-				prompt: request.prompt,
-				stream: false,
-			}),
+			body: JSON.stringify(body),
 			signal: controller.signal,
 		});
 
@@ -37,8 +51,11 @@ export async function runLocalInference(request: LocalInferenceRequest): Promise
 			});
 		}
 
-		const data = (await response.json()) as { response?: unknown };
-		if (typeof data.response !== "string") {
+		const data = (await response.json()) as { response?: unknown; message?: { content?: unknown } };
+		const text = useChat
+			? data.message?.content
+			: data.response;
+		if (typeof text !== "string") {
 			throw normalizeLocalInferenceError({
 				model: request.model,
 				error: new Error("Malformed Ollama response payload"),
@@ -46,7 +63,7 @@ export async function runLocalInference(request: LocalInferenceRequest): Promise
 			});
 		}
 
-		return { text: data.response, model: request.model };
+		return { text, model: request.model };
 	} catch (error: unknown) {
 		if (
 			typeof error === "object" &&

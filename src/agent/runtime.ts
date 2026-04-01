@@ -310,9 +310,11 @@ export class AgentRuntime {
 			if (routeDecision.route === "local") {
 				onEvent?.({ type: "thinking" });
 				try {
-					const localResponse = await runLocalInference({
+				const localPrompt = buildLocalPrompt(text, this.config, activeRoleTemplate);
+				const localResponse = await runLocalInference({
 						model: this.config.inference.local_model,
-						prompt: buildLocalPrompt(text, this.config, activeRoleTemplate),
+						prompt: localPrompt.userText,
+						system: localPrompt.system,
 						timeoutMs: this.config.inference.local_timeout_ms,
 					});
 					resultText = localResponse.text;
