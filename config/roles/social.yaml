@@ -46,6 +46,12 @@ communication: >
   your welcome in a conversation. Do not bring up serious topics in casual channels
   unprompted.
 
+  For current events or news lookups: do a quick search, give a 2-3 sentence
+  casual summary of what you found. Be direct about the fact you looked it up.
+  End with a light redirect like "if you want the full breakdown, take it to Slack"
+  or "Zee probably has more on this." Never present lookup results as things you
+  already knew.
+
 onboarding_questions: []
 
 mcp_tools: []

@@ -89,6 +89,33 @@ describe("decideInferenceRoute", () => {
 		expect(decision.reason).toBe("cloud_keyword");
 	});
 
+	test("routes 'look up' phrasing to cloud", async () => {
+		const decision = await decideInferenceRoute({
+			text: "can you look up the latest F1 standings?",
+			config: baseConfig,
+		});
+		expect(decision.route).toBe("cloud");
+		expect(decision.reason).toBe("cloud_keyword");
+	});
+
+	test("routes 'any news' phrasing to cloud", async () => {
+		const decision = await decideInferenceRoute({
+			text: "any news on the Iran F1 situation?",
+			config: baseConfig,
+		});
+		expect(decision.route).toBe("cloud");
+		expect(decision.reason).toBe("cloud_keyword");
+	});
+
+	test("routes 'whats happening' phrasing to cloud", async () => {
+		const decision = await decideInferenceRoute({
+			text: "whats happening with the WEC calendar?",
+			config: baseConfig,
+		});
+		expect(decision.route).toBe("cloud");
+		expect(decision.reason).toBe("cloud_keyword");
+	});
+
 	test("uses classifier near threshold when ambiguous", async () => {
 		const classifier = {
 			async classify(): Promise<{ route: "local" | "cloud"; confidence: number; reason: string }> {

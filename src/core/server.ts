@@ -182,10 +182,14 @@ async function handleTrigger(req: Request): Promise<Response> {
 	const conversationId = body.conversationId ?? `trigger:${Date.now()}`;
 	const source = body.source ?? "http";
 
+	// Discord messages are social/conversational - let inference routing decide tier.
+	// Other trigger sources (HTTP automation, scheduler) are high-consequence by default.
+	const isDiscord = source === "discord";
+
 	try {
 		const response = await triggerDeps.runtime.handleMessage("trigger", conversationId, body.task, undefined, {
-			toolRequired: true,
-			highConsequence: true,
+			toolRequired: !isDiscord,
+			highConsequence: !isDiscord,
 		});
 
 		// Deliver via Slack if requested
