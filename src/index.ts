@@ -75,6 +75,20 @@ async function main(): Promise<void> {
 		console.log(`[roles] Role '${roleId}' not found in registry, using config role hint`);
 	}
 
+	// Build role template map for per-channel role switching
+	const allRoleTemplates = new Map<string, RoleTemplate>();
+	for (const id of roleRegistry.list()) {
+		try {
+			allRoleTemplates.set(id, roleRegistry.getOrThrow(id));
+		} catch {
+			// Skip roles that fail to load
+		}
+	}
+	if (config.channel_roles && Object.keys(config.channel_roles).length > 0) {
+		const mappedRoles = Object.values(config.channel_roles).join(", ");
+		console.log(`[roles] Channel role mapping active: ${mappedRoles}`);
+	}
+
 	setRoleInfoProvider(() => (activeRole ? { id: activeRole.id, name: activeRole.name } : null));
 
 	const db = getDatabase();
@@ -112,6 +126,7 @@ async function main(): Promise<void> {
 	if (activeRole) {
 		runtime.setRoleTemplate(activeRole);
 	}
+	runtime.setRoleTemplates(allRoleTemplates);
 
 	if (memory.isReady()) {
 		const contextBuilder = new MemoryContextBuilder(memory, memoryConfig);

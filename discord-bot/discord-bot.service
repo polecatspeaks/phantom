@@ -1,0 +1,16 @@
+[Unit]
+Description=Friday Discord Bot
+After=network.target phantom.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=chris
+WorkingDirectory=/home/chris/discord-bot
+EnvironmentFile=/etc/discord-bot.env
+ExecStart=/usr/local/bin/bun index.ts
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

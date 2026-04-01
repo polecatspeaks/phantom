@@ -11,6 +11,13 @@ effort: max
 max_budget_usd: 0
 timeout_minutes: 240
 
+# Per-channel role assignment.
+# Keys are matched against the conversationId prefix (e.g. "discord:") and then
+# against the channelId (e.g. "slack"). First match wins.
+channel_roles:
+  discord: social
+  slack: swe
+
 # Peer Phantom connections (other Phantoms this instance can query via MCP)
 # peers:
 #   swe-phantom:

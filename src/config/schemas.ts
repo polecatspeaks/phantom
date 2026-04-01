@@ -26,6 +26,9 @@ export const PhantomConfigSchema = z.object({
 	max_budget_usd: z.number().min(0).default(0),
 	timeout_minutes: z.number().min(1).default(240),
 	peers: z.record(z.string(), PeerConfigSchema).optional(),
+	// Map conversationId prefixes and channelIds to role IDs.
+	// Checked in order: conversationId prefix (e.g. "discord:") first, then channelId.
+	channel_roles: z.record(z.string(), z.string()).optional(),
 });
 
 export const SlackChannelConfigSchema = z.object({

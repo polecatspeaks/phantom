@@ -35,6 +35,7 @@ export class AgentRuntime {
 	private memoryContextBuilder: MemoryContextBuilder | null = null;
 	private evolvedConfig: EvolvedConfig | null = null;
 	private roleTemplate: RoleTemplate | null = null;
+	private roleTemplates: Map<string, RoleTemplate> = new Map();
 	private onboardingPrompt: string | null = null;
 	private lastTrackedFiles: string[] = [];
 	private mcpServerFactories: Record<string, () => McpServerConfig> | null = null;
@@ -55,6 +56,32 @@ export class AgentRuntime {
 
 	setRoleTemplate(template: RoleTemplate): void {
 		this.roleTemplate = template;
+	}
+
+	// Register all available role templates for per-channel lookup.
+	// The fallback is still this.roleTemplate (set via setRoleTemplate).
+	setRoleTemplates(templates: Map<string, RoleTemplate>): void {
+		this.roleTemplates = templates;
+	}
+
+	private resolveRoleTemplate(channelId: string, conversationId: string): RoleTemplate | null {
+		const channelRoles = this.config.channel_roles;
+		if (!channelRoles || this.roleTemplates.size === 0) return this.roleTemplate;
+
+		// Check conversationId prefix first (covers sidecar channels like discord:*)
+		for (const [key, roleId] of Object.entries(channelRoles)) {
+			if (conversationId.startsWith(`${key}:`)) {
+				return this.roleTemplates.get(roleId) ?? this.roleTemplate;
+			}
+		}
+
+		// Fall back to channelId match (covers native channels like slack, telegram)
+		if (channelId in channelRoles) {
+			const roleId = channelRoles[channelId];
+			return this.roleTemplates.get(roleId) ?? this.roleTemplate;
+		}
+
+		return this.roleTemplate;
 	}
 
 	setOnboardingPrompt(prompt: string | null): void {
@@ -144,11 +171,12 @@ export class AgentRuntime {
 				// Memory unavailable, continue without it
 			}
 		}
+		const activeRoleTemplate = this.resolveRoleTemplate(channelId, conversationId);
 		const appendPrompt = assemblePrompt(
 			this.config,
 			memoryContext,
 			this.evolvedConfig ?? undefined,
-			this.roleTemplate ?? undefined,
+			activeRoleTemplate ?? undefined,
 			this.onboardingPrompt ?? undefined,
 			undefined,
 		);
