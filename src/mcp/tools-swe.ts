@@ -177,7 +177,9 @@ function registerReviewRequest(server: McpServer, deps: ToolDependencies): void 
 			try {
 				const prompt = `Please review the following with a focus on ${focus}:\n\n${target}\n\nProvide specific, actionable feedback. Reference team conventions if known.`;
 
-				const response = await deps.runtime.handleMessage("mcp", `review-${Date.now()}`, prompt);
+				const response = await deps.runtime.handleMessage("mcp", `review-${Date.now()}`, prompt, undefined, {
+					toolRequired: true,
+				});
 
 				return {
 					content: [

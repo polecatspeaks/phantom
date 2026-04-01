@@ -73,6 +73,32 @@ Channels: Slack (Socket Mode), Telegram (long polling), Email (IMAP/SMTP), Webho
 
 `src/agent/runtime.ts` - Wraps the Claude Agent SDK `query()` function. Handles session management, hooks (file tracking, command blocking), and event streaming (thinking, tool_use, error).
 
+Before invoking the SDK, the runtime calls the inference router to decide whether the request should run on the local Ollama tier or the cloud (Anthropic) tier. See **Tiered Inference Router** below.
+
+### Tiered Inference Router
+
+`src/agent/inference-router.ts` - Pure routing decisioner. Selects between local (Ollama) and cloud (Anthropic) execution before `query()` is called. No SDK calls, fully mockable.
+
+**Routing modes** (set via `INFERENCE_MODE` or `config/phantom.yaml`):
+- `cloud` - Always use Anthropic. Identical to pre-router behaviour.
+- `local` - Prefer local Ollama; fall back to cloud on failure.
+- `auto` (default) - Heuristics first: token estimate, `toolRequired`, `highConsequence`, keyword signals. Ambiguous cases use `DefaultLocalClassifier`.
+
+**Decision factors** (heuristics applied in order):
+1. Per-request metadata override (`forceInferenceMode`)
+2. Config-level mode forcing (`cloud` or `local`)
+3. `toolRequired` or `highConsequence` flags -> cloud
+4. Cloud keyword signals (`build`, `install`, `analyze`, `plan`, `execute`, `debug`, `refactor`, `deploy`, `migrate`) -> cloud
+5. Token estimate above `LOCAL_COMPLEXITY_THRESHOLD` (default 500) -> cloud
+6. Classifier returns `cloud` with confidence above threshold -> cloud
+7. Everything else -> local
+
+**Local path** (`src/agent/local-inference.ts`): POSTs to Ollama `http://localhost:11434/api/generate` with `AbortController` timeout. All Ollama errors are normalized to `LocalInferenceError` (category: `timeout`, `service_unavailable`, `model_not_found`, `malformed_response`, `network`, `unknown`). Any local failure triggers an automatic cloud fallback.
+
+**Cost semantics**: Local-only responses create no cost event. Local-to-cloud fallback records only the final cloud cost.
+
+**Judge isolation**: Self-evolution judges (`src/evolution/judges/client.ts`) use the raw Anthropic SDK directly and are never routed through the inference router. This preserves cross-model evaluation integrity.
+
 ### Prompt Assembler
 
 `src/agent/prompt-assembler.ts` - Builds the system prompt from layers:
@@ -120,10 +146,11 @@ LLM judges (Sonnet) available for gates when API key is set. Falls back to heuri
 2. Channel router normalizes to `InboundMessage`
 3. Session manager finds or creates a session
 4. Prompt assembler builds the full system prompt
-5. Agent runtime calls `query()` with hooks and events
-6. Response routed back through the originating channel
-7. Memory consolidation runs (non-blocking)
-8. Evolution pipeline runs (non-blocking)
+5. Inference router decides: local (Ollama) or cloud (Anthropic)
+6. Agent runtime runs on local tier, or calls `query()` for cloud; falls back to cloud on local failure
+7. Response routed back through the originating channel
+8. Memory consolidation runs (non-blocking)
+9. Evolution pipeline runs (non-blocking)
 
 ## Technology Stack
 
@@ -142,7 +169,7 @@ LLM judges (Sonnet) available for gates when API key is set. Falls back to heuri
 
 ```
 src/
-  agent/           - Runtime, prompt assembler, hooks, cost tracking
+  agent/           - Runtime, prompt assembler, hooks, cost tracking, inference router, local adapter
   channels/        - Slack, Telegram, Email, Webhook, CLI, status reactions
   cli/             - CLI commands (init, start, doctor, token, status)
   config/          - YAML config loaders, Zod schemas

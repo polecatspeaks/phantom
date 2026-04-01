@@ -248,7 +248,9 @@ function registerPhantomAsk(server: McpServer, deps: ToolDependencies): void {
 		},
 		async ({ message, urgency: _urgency }): Promise<CallToolResult> => {
 			try {
-				const response = await deps.runtime.handleMessage("mcp", `ask-${Date.now()}`, message);
+				const response = await deps.runtime.handleMessage("mcp", `ask-${Date.now()}`, message, undefined, {
+					toolRequired: true,
+				});
 				return {
 					content: [
 						{

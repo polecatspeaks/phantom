@@ -182,7 +182,10 @@ async function handleTrigger(req: Request): Promise<Response> {
 	const source = body.source ?? "http";
 
 	try {
-		const response = await triggerDeps.runtime.handleMessage("trigger", conversationId, body.task);
+		const response = await triggerDeps.runtime.handleMessage("trigger", conversationId, body.task, undefined, {
+			toolRequired: true,
+			highConsequence: true,
+		});
 
 		// Deliver via Slack if requested
 		const deliveryChannel = body.delivery?.channel ?? "slack";

@@ -186,7 +186,9 @@ export class Scheduler {
 		let errorMsg: string | null = null;
 
 		try {
-			const response = await this.runtime.handleMessage("scheduler", `sched:${job.id}`, job.task);
+			const response = await this.runtime.handleMessage("scheduler", `sched:${job.id}`, job.task, undefined, {
+				toolRequired: true,
+			});
 			responseText = response.text;
 
 			if (responseText.startsWith("Error:")) {

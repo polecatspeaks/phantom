@@ -296,12 +296,16 @@ bun run phantom init --yes
 # Set your API key
 export ANTHROPIC_API_KEY=sk-ant-...
 
+# Optional: enable local inference (requires Ollama with llama3.1:8b)
+# export INFERENCE_MODE=auto
+# export OLLAMA_AGENT_MODEL=llama3.1:8b
+
 # Start
 bun run phantom start
 ```
 
 ```bash
-bun test              # 770 tests
+bun test              # 841 tests
 bun run lint          # Biome
 bun run typecheck     # tsc --noEmit
 ```

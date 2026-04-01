@@ -5,6 +5,9 @@ import type { PhantomConfig } from "../config/types.ts";
 import type { EvolvedConfig } from "../evolution/types.ts";
 import type { MemoryContextBuilder } from "../memory/context-builder.ts";
 import type { RoleTemplate } from "../roles/types.ts";
+import { decideInferenceRoute } from "./inference-router.ts";
+import { runLocalInference } from "./local-inference.ts";
+import { buildLocalPrompt } from "./local-prompt.ts";
 import { CostTracker } from "./cost-tracker.ts";
 import { type AgentCost, type AgentResponse, emptyCost } from "./events.ts";
 import { createDangerousCommandBlocker, createFileTracker } from "./hooks.ts";
@@ -17,6 +20,12 @@ export type RuntimeEvent =
 	| { type: "tool_use"; tool: string; input?: Record<string, unknown> }
 	| { type: "thinking" }
 	| { type: "error"; message: string };
+
+export type RuntimeRequestOptions = {
+	metadata?: Record<string, unknown>;
+	toolRequired?: boolean;
+	highConsequence?: boolean;
+};
 
 export class AgentRuntime {
 	private config: PhantomConfig;
@@ -65,6 +74,7 @@ export class AgentRuntime {
 		conversationId: string,
 		text: string,
 		onEvent?: (event: RuntimeEvent) => void,
+		requestOptions?: RuntimeRequestOptions,
 	): Promise<AgentResponse> {
 		const sessionKey = `${channelId}:${conversationId}`;
 		const startTime = Date.now();
@@ -83,7 +93,15 @@ export class AgentRuntime {
 		const wrappedText = this.isExternalChannel(channelId) ? this.wrapWithSecurityContext(text) : text;
 
 		try {
-			return await this.runQuery(sessionKey, channelId, conversationId, wrappedText, startTime, onEvent);
+			return await this.runQuery(
+				sessionKey,
+				channelId,
+				conversationId,
+				wrappedText,
+				startTime,
+				onEvent,
+				requestOptions,
+			);
 		} finally {
 			this.activeSessions.delete(sessionKey);
 		}
@@ -110,6 +128,7 @@ export class AgentRuntime {
 		text: string,
 		startTime: number,
 		onEvent?: (event: RuntimeEvent) => void,
+		requestOptions?: RuntimeRequestOptions,
 	): Promise<AgentResponse> {
 		let session = this.sessionStore.findActive(channelId, conversationId);
 		const isResume = session?.sdk_session_id != null;
@@ -140,8 +159,10 @@ export class AgentRuntime {
 		let resultText = "";
 		let cost: AgentCost = emptyCost();
 		let emittedThinking = false;
+		let usedCloudPath = false;
 
 		const runSdkQuery = async (useResume: boolean): Promise<void> => {
+			usedCloudPath = true;
 			const queryStream = query({
 				prompt: text,
 				options: {
@@ -214,12 +235,12 @@ export class AgentRuntime {
 			}
 		};
 
-		try {
+		const runCloudWithRetry = async (useResume: boolean): Promise<void> => {
 			try {
-				await runSdkQuery(isResume);
+				await runSdkQuery(useResume);
 			} catch (err: unknown) {
 				const errorMsg = err instanceof Error ? err.message : String(err);
-				const isStaleSession = isResume && errorMsg.includes("No conversation found");
+				const isStaleSession = useResume && errorMsg.includes("No conversation found");
 
 				if (isStaleSession) {
 					// SDK session file is gone (container restart, deploy, etc).
@@ -243,12 +264,47 @@ export class AgentRuntime {
 					onEvent?.({ type: "error", message: errorMsg });
 				}
 			}
+		};
+
+		try {
+			const routeDecision = await decideInferenceRoute({
+				text,
+				config: this.config,
+				metadata: requestOptions?.metadata,
+				toolRequired: requestOptions?.toolRequired,
+				highConsequence: requestOptions?.highConsequence,
+			});
+
+			console.log(
+				`[runtime] Inference route: ${routeDecision.route} (${routeDecision.reason}, ${routeDecision.tokenEstimate} tokens est)`,
+			);
+
+			if (routeDecision.route === "local") {
+				onEvent?.({ type: "thinking" });
+				try {
+					const localResponse = await runLocalInference({
+						model: this.config.inference.local_model,
+						prompt: buildLocalPrompt(text),
+						timeoutMs: this.config.inference.local_timeout_ms,
+					});
+					resultText = localResponse.text;
+					onEvent?.({ type: "assistant_message", content: resultText });
+				} catch (localErr: unknown) {
+					const errMsg = localErr instanceof Error ? localErr.message : String(localErr);
+					console.warn(`[runtime] Local inference failed, falling back to cloud: ${errMsg}`);
+					await runCloudWithRetry(isResume);
+				}
+			} else {
+				await runCloudWithRetry(isResume);
+			}
 		} finally {
 			clearTimeout(timeout);
 		}
 
 		this.lastTrackedFiles = fileTracker.getTrackedFiles();
-		this.costTracker.record(sessionKey, cost, this.config.model);
+		if (usedCloudPath) {
+			this.costTracker.record(sessionKey, cost, this.config.model);
+		}
 		this.sessionStore.touch(sessionKey);
 
 		return {

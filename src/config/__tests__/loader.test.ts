@@ -53,9 +53,109 @@ name: minimal
 			expect(config.name).toBe("minimal");
 			expect(config.port).toBe(3100);
 			expect(config.role).toBe("swe");
+			expect(config.inference.mode).toBe("auto");
+			expect(config.inference.local_model).toBe("llama3.1:8b");
+			expect(config.inference.local_complexity_threshold).toBe(500);
+			expect(config.inference.local_timeout_ms).toBe(30000);
 			expect(config.effort).toBe("max");
 			expect(config.max_budget_usd).toBe(0);
 		} finally {
+			cleanup();
+		}
+	});
+
+	test("INFERENCE_MODE env var overrides YAML inference mode", () => {
+		const path = writeYaml(
+			"env-inference-mode.yaml",
+			`
+name: test
+inference:
+  mode: auto
+`,
+		);
+		const saved = process.env.INFERENCE_MODE;
+		try {
+			process.env.INFERENCE_MODE = "local";
+			const config = loadConfig(path);
+			expect(config.inference.mode).toBe("local");
+		} finally {
+			if (saved !== undefined) {
+				process.env.INFERENCE_MODE = saved;
+			} else {
+				process.env.INFERENCE_MODE = undefined;
+			}
+			cleanup();
+		}
+	});
+
+	test("OLLAMA_AGENT_MODEL env var overrides YAML local model", () => {
+		const path = writeYaml(
+			"env-ollama-model.yaml",
+			`
+name: test
+inference:
+  local_model: mistral:7b
+`,
+		);
+		const saved = process.env.OLLAMA_AGENT_MODEL;
+		try {
+			process.env.OLLAMA_AGENT_MODEL = "llama3.1:8b";
+			const config = loadConfig(path);
+			expect(config.inference.local_model).toBe("llama3.1:8b");
+		} finally {
+			if (saved !== undefined) {
+				process.env.OLLAMA_AGENT_MODEL = saved;
+			} else {
+				process.env.OLLAMA_AGENT_MODEL = undefined;
+			}
+			cleanup();
+		}
+	});
+
+	test("LOCAL_COMPLEXITY_THRESHOLD env var overrides YAML threshold", () => {
+		const path = writeYaml(
+			"env-local-threshold.yaml",
+			`
+name: test
+inference:
+  local_complexity_threshold: 900
+`,
+		);
+		const saved = process.env.LOCAL_COMPLEXITY_THRESHOLD;
+		try {
+			process.env.LOCAL_COMPLEXITY_THRESHOLD = "700";
+			const config = loadConfig(path);
+			expect(config.inference.local_complexity_threshold).toBe(700);
+		} finally {
+			if (saved !== undefined) {
+				process.env.LOCAL_COMPLEXITY_THRESHOLD = saved;
+			} else {
+				process.env.LOCAL_COMPLEXITY_THRESHOLD = undefined;
+			}
+			cleanup();
+		}
+	});
+
+	test("LOCAL_TIMEOUT_MS env var overrides YAML local timeout", () => {
+		const path = writeYaml(
+			"env-local-timeout.yaml",
+			`
+name: test
+inference:
+  local_timeout_ms: 45000
+`,
+		);
+		const saved = process.env.LOCAL_TIMEOUT_MS;
+		try {
+			process.env.LOCAL_TIMEOUT_MS = "20000";
+			const config = loadConfig(path);
+			expect(config.inference.local_timeout_ms).toBe(20000);
+		} finally {
+			if (saved !== undefined) {
+				process.env.LOCAL_TIMEOUT_MS = saved;
+			} else {
+				process.env.LOCAL_TIMEOUT_MS = undefined;
+			}
 			cleanup();
 		}
 	});

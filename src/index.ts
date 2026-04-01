@@ -408,26 +408,36 @@ async function main(): Promise<void> {
 			telegramChannel.startTyping(telegramChatId);
 		}
 
-		const response = await runtime.handleMessage(msg.channelId, msg.conversationId, msg.text, (event: RuntimeEvent) => {
-			switch (event.type) {
-				case "init":
-					console.log(`\n[phantom] Session: ${event.sessionId}`);
-					break;
-				case "thinking":
-					statusReactions?.setThinking();
-					break;
-				case "tool_use":
-					statusReactions?.setTool(event.tool);
-					if (progressStream) {
-						const summary = formatToolActivity(event.tool, event.input);
-						progressStream.addToolActivity(event.tool, summary);
-					}
-					break;
-				case "error":
-					statusReactions?.setError();
-					break;
-			}
-		});
+		const response = await runtime.handleMessage(
+			msg.channelId,
+			msg.conversationId,
+			msg.text,
+			(event: RuntimeEvent) => {
+				switch (event.type) {
+					case "init":
+						console.log(`\n[phantom] Session: ${event.sessionId}`);
+						break;
+					case "thinking":
+						statusReactions?.setThinking();
+						break;
+					case "tool_use":
+						statusReactions?.setTool(event.tool);
+						if (progressStream) {
+							const summary = formatToolActivity(event.tool, event.input);
+							progressStream.addToolActivity(event.tool, summary);
+						}
+						break;
+					case "error":
+						statusReactions?.setError();
+						break;
+				}
+			},
+			{
+				metadata: msg.metadata,
+				toolRequired: msg.metadata?.toolRequired === true,
+				highConsequence: msg.metadata?.highConsequence === true,
+			},
+		);
 
 		// Track assistant messages
 		if (response.text) {

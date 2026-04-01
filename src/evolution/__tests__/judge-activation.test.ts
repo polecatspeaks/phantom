@@ -89,7 +89,7 @@ describe("Judge Activation", () => {
 		if (savedApiKey !== undefined) {
 			process.env.ANTHROPIC_API_KEY = savedApiKey;
 		} else {
-			process.env.ANTHROPIC_API_KEY = undefined;
+			delete process.env.ANTHROPIC_API_KEY;
 		}
 		rmSync(TEST_DIR, { recursive: true, force: true });
 	});
@@ -102,7 +102,7 @@ describe("Judge Activation", () => {
 	});
 
 	test("auto mode disables judges when ANTHROPIC_API_KEY is missing", () => {
-		process.env.ANTHROPIC_API_KEY = undefined;
+		delete process.env.ANTHROPIC_API_KEY;
 		setupWithJudgeMode("auto");
 		const engine = new EvolutionEngine(CONFIG_PATH);
 		expect(engine.usesLLMJudges()).toBe(false);
@@ -116,7 +116,7 @@ describe("Judge Activation", () => {
 	});
 
 	test("always mode enables judges regardless of API key", () => {
-		process.env.ANTHROPIC_API_KEY = undefined;
+		delete process.env.ANTHROPIC_API_KEY;
 		setupWithJudgeMode("always");
 		const engine = new EvolutionEngine(CONFIG_PATH);
 		expect(engine.usesLLMJudges()).toBe(true);
@@ -128,14 +128,14 @@ describe("Judge Activation", () => {
 		const engine = new EvolutionEngine(CONFIG_PATH);
 		expect(engine.usesLLMJudges()).toBe(true);
 
-		process.env.ANTHROPIC_API_KEY = undefined;
+		delete process.env.ANTHROPIC_API_KEY;
 		setupWithJudgeMode("auto");
 		const engine2 = new EvolutionEngine(CONFIG_PATH);
 		expect(engine2.usesLLMJudges()).toBe(false);
 	});
 
 	test("missing judges section defaults to auto mode", () => {
-		process.env.ANTHROPIC_API_KEY = undefined;
+		delete process.env.ANTHROPIC_API_KEY;
 		mkdirSync(`${TEST_DIR}/config`, { recursive: true });
 		mkdirSync(`${TEST_DIR}/phantom-config/meta`, { recursive: true });
 		mkdirSync(`${TEST_DIR}/phantom-config/strategies`, { recursive: true });

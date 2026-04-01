@@ -19,7 +19,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	resetKeyCache();
-	process.env.SECRET_ENCRYPTION_KEY = undefined;
+		delete process.env.SECRET_ENCRYPTION_KEY;
 	try {
 		rmSync(TEST_KEY_FILE);
 	} catch {
@@ -41,7 +41,7 @@ describe("getEncryptionKey", () => {
 	});
 
 	test("auto-generates key file when no env var", () => {
-		process.env.SECRET_ENCRYPTION_KEY = undefined;
+		delete process.env.SECRET_ENCRYPTION_KEY;
 		if (!existsSync(TEST_DATA_DIR)) mkdirSync(TEST_DATA_DIR, { recursive: true });
 
 		const key = getEncryptionKey();
@@ -50,7 +50,7 @@ describe("getEncryptionKey", () => {
 	});
 
 	test("reads existing key file", () => {
-		process.env.SECRET_ENCRYPTION_KEY = undefined;
+		delete process.env.SECRET_ENCRYPTION_KEY;
 		if (!existsSync(TEST_DATA_DIR)) mkdirSync(TEST_DATA_DIR, { recursive: true });
 		writeFileSync(TEST_KEY_FILE, TEST_KEY);
 

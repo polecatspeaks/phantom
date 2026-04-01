@@ -14,6 +14,14 @@ export const PhantomConfigSchema = z.object({
 	port: z.number().int().min(1).max(65535).default(3100),
 	role: z.string().min(1).default("swe"),
 	model: z.string().min(1).default("claude-sonnet-4-6"),
+	inference: z
+		.object({
+			mode: z.enum(["auto", "local", "cloud"]).default("auto"),
+			local_model: z.string().min(1).default("llama3.1:8b"),
+			local_complexity_threshold: z.number().int().min(1).default(500),
+			local_timeout_ms: z.number().int().min(1000).default(30000),
+		})
+		.default({}),
 	effort: z.enum(["low", "medium", "high", "max"]).default("max"),
 	max_budget_usd: z.number().min(0).default(0),
 	timeout_minutes: z.number().min(1).default(240),

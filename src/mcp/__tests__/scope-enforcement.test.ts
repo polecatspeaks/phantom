@@ -134,6 +134,12 @@ describe("MCP scope enforcement", () => {
 					port: 3100,
 					role: "swe",
 					model: "claude-opus-4-6",
+					inference: {
+						mode: "auto",
+						local_model: "llama3.1:8b",
+						local_complexity_threshold: 500,
+						local_timeout_ms: 30000,
+					},
 					effort: "max" as const,
 					max_budget_usd: 0,
 					timeout_minutes: 240,

@@ -7,15 +7,18 @@ describe("loadMemoryConfig env overrides", () => {
 	const origModel = process.env.EMBEDDING_MODEL;
 
 	beforeEach(() => {
-		process.env.QDRANT_URL = undefined;
-		process.env.OLLAMA_URL = undefined;
-		process.env.EMBEDDING_MODEL = undefined;
+		delete process.env.QDRANT_URL;
+		delete process.env.OLLAMA_URL;
+		delete process.env.EMBEDDING_MODEL;
 	});
 
 	afterEach(() => {
-		process.env.QDRANT_URL = origQdrant;
-		process.env.OLLAMA_URL = origOllama;
-		process.env.EMBEDDING_MODEL = origModel;
+		if (origQdrant !== undefined) process.env.QDRANT_URL = origQdrant;
+		else delete process.env.QDRANT_URL;
+		if (origOllama !== undefined) process.env.OLLAMA_URL = origOllama;
+		else delete process.env.OLLAMA_URL;
+		if (origModel !== undefined) process.env.EMBEDDING_MODEL = origModel;
+		else delete process.env.EMBEDDING_MODEL;
 	});
 
 	test("uses YAML defaults when no env vars set", () => {

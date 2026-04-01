@@ -31,6 +31,27 @@ export function loadConfig(path?: string): PhantomConfig {
 	if (process.env.PHANTOM_MODEL) {
 		config.model = process.env.PHANTOM_MODEL;
 	}
+	if (process.env.INFERENCE_MODE) {
+		const mode = process.env.INFERENCE_MODE;
+		if (mode === "auto" || mode === "local" || mode === "cloud") {
+			config.inference.mode = mode;
+		}
+	}
+	if (process.env.OLLAMA_AGENT_MODEL?.trim()) {
+		config.inference.local_model = process.env.OLLAMA_AGENT_MODEL.trim();
+	}
+	if (process.env.LOCAL_COMPLEXITY_THRESHOLD) {
+		const threshold = Number.parseInt(process.env.LOCAL_COMPLEXITY_THRESHOLD, 10);
+		if (threshold >= 1) {
+			config.inference.local_complexity_threshold = threshold;
+		}
+	}
+	if (process.env.LOCAL_TIMEOUT_MS) {
+		const timeoutMs = Number.parseInt(process.env.LOCAL_TIMEOUT_MS, 10);
+		if (timeoutMs >= 1000) {
+			config.inference.local_timeout_ms = timeoutMs;
+		}
+	}
 	if (process.env.PHANTOM_DOMAIN) {
 		config.domain = process.env.PHANTOM_DOMAIN;
 	}
