@@ -47,6 +47,7 @@ to the current conversation.`,
 			task: z.string().optional().describe("The prompt for the agent when the job fires (required for create)"),
 			delivery: JobDeliverySchema.optional().describe("Where to deliver results"),
 			jobId: z.string().optional().describe("Job ID (for delete or run)"),
+			toolRequired: z.boolean().default(false).describe("Set true if the task needs tools (routes to cloud). False routes to local inference. Default: false."),
 		},
 		async (input) => {
 			try {
@@ -62,6 +63,7 @@ to the current conversation.`,
 							schedule: input.schedule,
 							task: input.task,
 							delivery: input.delivery,
+							toolRequired: input.toolRequired,
 							deleteAfterRun: input.schedule.kind === "at",
 						});
 
@@ -72,6 +74,7 @@ to the current conversation.`,
 							schedule: job.schedule,
 							nextRunAt: job.nextRunAt,
 							delivery: job.delivery,
+							toolRequired: job.toolRequired,
 						});
 					}
 
@@ -91,6 +94,8 @@ to the current conversation.`,
 								lastRunStatus: j.lastRunStatus,
 								runCount: j.runCount,
 								delivery: j.delivery,
+								toolRequired: j.toolRequired,
+								lastRunCostUsd: j.lastRunCostUsd,
 							})),
 						});
 					}

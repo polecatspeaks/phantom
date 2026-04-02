@@ -14,6 +14,7 @@ type SchedulerDeps = {
 	runtime: AgentRuntime;
 	slackChannel?: SlackChannel;
 	ownerUserId?: string;
+	quietHours?: { start: string; end: string; tz: string };
 };
 
 export class Scheduler {
@@ -21,6 +22,7 @@ export class Scheduler {
 	private runtime: AgentRuntime;
 	private slackChannel: SlackChannel | undefined;
 	private ownerUserId: string | undefined;
+	private quietHours: { start: string; end: string; tz: string } | undefined;
 	private timer: ReturnType<typeof setTimeout> | null = null;
 	private running = false;
 	private executing = false;
@@ -30,6 +32,7 @@ export class Scheduler {
 		this.runtime = deps.runtime;
 		this.slackChannel = deps.slackChannel;
 		this.ownerUserId = deps.ownerUserId;
+		this.quietHours = deps.quietHours;
 	}
 
 	/** Set Slack channel after construction (for lazy wiring when channels init after scheduler) */
@@ -67,8 +70,8 @@ export class Scheduler {
 		const delivery = input.delivery ?? { channel: "slack", target: "owner" };
 
 		this.db.run(
-			`INSERT INTO scheduled_jobs (id, name, description, schedule_kind, schedule_value, task, delivery_channel, delivery_target, next_run_at, delete_after_run, created_by)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			`INSERT INTO scheduled_jobs (id, name, description, schedule_kind, schedule_value, task, delivery_channel, delivery_target, next_run_at, tool_required, delete_after_run, created_by)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			[
 				id,
 				input.name,
@@ -79,6 +82,7 @@ export class Scheduler {
 				delivery.channel,
 				delivery.target,
 				nextRun?.toISOString() ?? null,
+				input.toolRequired ? 1 : 0,
 				input.deleteAfterRun ? 1 : 0,
 				input.createdBy ?? "agent",
 			],
@@ -184,12 +188,17 @@ export class Scheduler {
 		let responseText = "";
 		let runStatus: "ok" | "error" = "ok";
 		let errorMsg: string | null = null;
+		let runCostUsd: number | null = null;
+
+		// During quiet hours, force local inference regardless of per-job setting
+		const effectiveToolRequired = this.quietHours && isQuietHours(this.quietHours) ? false : (job.toolRequired ?? false);
 
 		try {
 			const response = await this.runtime.handleMessage("scheduler", `sched:${job.id}`, job.task, undefined, {
-				toolRequired: true,
+				toolRequired: effectiveToolRequired,
 			});
 			responseText = response.text;
+			runCostUsd = response.cost.totalUsd > 0 ? response.cost.totalUsd : null;
 
 			if (responseText.startsWith("Error:")) {
 				runStatus = "error";
@@ -240,9 +249,10 @@ export class Scheduler {
 				run_count = run_count + 1,
 				consecutive_errors = ?,
 				status = ?,
+				last_run_cost_usd = ?,
 				updated_at = datetime('now')
 			WHERE id = ?`,
-			[new Date(startMs).toISOString(), runStatus, durationMs, errorMsg, nextRunAt, newConsecErrors, newStatus, job.id],
+			[new Date(startMs).toISOString(), runStatus, durationMs, errorMsg, nextRunAt, newConsecErrors, newStatus, runCostUsd, job.id],
 		);
 
 		// Delete completed one-shot jobs
@@ -312,6 +322,33 @@ export class Scheduler {
 	}
 }
 
+// Returns true if the current wall-clock time (in tz) is within the quiet hours window.
+// Handles overnight ranges (e.g. 23:00-07:00 spans midnight).
+function isQuietHours(qh: { start: string; end: string; tz: string }): boolean {
+	try {
+		const now = new Date();
+		const formatter = new Intl.DateTimeFormat("en-US", {
+			timeZone: qh.tz,
+			hour: "2-digit",
+			minute: "2-digit",
+			hour12: false,
+		});
+		const parts = formatter.formatToParts(now);
+		const hh = parts.find((p) => p.type === "hour")?.value ?? "00";
+		const mm = parts.find((p) => p.type === "minute")?.value ?? "00";
+		const current = `${hh.padStart(2, "0")}:${mm.padStart(2, "0")}`;
+
+		if (qh.start <= qh.end) {
+			// Same-day range, e.g. 08:00-17:00
+			return current >= qh.start && current < qh.end;
+		}
+		// Overnight range, e.g. 23:00-07:00
+		return current >= qh.start || current < qh.end;
+	} catch {
+		return false;
+	}
+}
+
 function rowToJob(row: JobRow): ScheduledJob {
 	const schedule = parseScheduleValue(row.schedule_kind, row.schedule_value);
 	return {
@@ -330,9 +367,11 @@ function rowToJob(row: JobRow): ScheduledJob {
 		lastRunStatus: row.last_run_status as ScheduledJob["lastRunStatus"],
 		lastRunDurationMs: row.last_run_duration_ms,
 		lastRunError: row.last_run_error,
+		lastRunCostUsd: row.last_run_cost_usd ?? null,
 		nextRunAt: row.next_run_at,
 		runCount: row.run_count,
 		consecutiveErrors: row.consecutive_errors,
+		toolRequired: row.tool_required === 1,
 		deleteAfterRun: row.delete_after_run === 1,
 		createdAt: row.created_at,
 		createdBy: row.created_by,

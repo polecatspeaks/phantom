@@ -1,0 +1,46 @@
+name: Deploy to Friday
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      stop_after_deploy:
+        description: 'Stop service after deploy (dev/testing mode)'
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    concurrency:
+      group: deploy-friday
+      cancel-in-progress: false
+
+    steps:
+      - name: Pull latest code
+        run: git -C /opt/phantom pull origin main
+
+      - name: Install dependencies
+        run: cd /opt/phantom && bun install --frozen-lockfile
+
+      - name: Restart service
+        run: sudo systemctl restart phantom
+
+      - name: Wait for startup
+        run: sleep 6
+
+      - name: Health check
+        run: |
+          STATUS=$(curl -sf http://localhost:3100/health | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','unknown'))" 2>/dev/null || echo "offline")
+          echo "Health: $STATUS"
+          if [ "$STATUS" != "ok" ]; then
+            echo "ERROR: Health check failed (status=$STATUS)"
+            exit 1
+          fi
+
+      - name: Stop after deploy (dev mode)
+        if: ${{ inputs.stop_after_deploy == true }}
+        run: |
+          echo "stop_after_deploy=true - stopping service for dev/testing"
+          sudo systemctl stop phantom

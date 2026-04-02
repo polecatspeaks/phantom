@@ -72,6 +72,10 @@ export const MIGRATIONS: string[] = [
 	// Security P0: remove inline dynamic tools (eval-equivalent via new Function)
 	`DELETE FROM dynamic_tools WHERE handler_type = 'inline'`,
 
+	// Migration 8: per-job routing control and cost tracking
+	`ALTER TABLE scheduled_jobs ADD COLUMN tool_required INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE scheduled_jobs ADD COLUMN last_run_cost_usd REAL DEFAULT NULL`,
+
 	`CREATE TABLE IF NOT EXISTS secrets (
 		name TEXT PRIMARY KEY,
 		encrypted_value TEXT NOT NULL,

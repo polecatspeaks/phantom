@@ -82,7 +82,7 @@ inference:
 			if (saved !== undefined) {
 				process.env.INFERENCE_MODE = saved;
 			} else {
-				process.env.INFERENCE_MODE = undefined;
+				delete process.env.INFERENCE_MODE;
 			}
 			cleanup();
 		}
@@ -106,7 +106,7 @@ inference:
 			if (saved !== undefined) {
 				process.env.OLLAMA_AGENT_MODEL = saved;
 			} else {
-				process.env.OLLAMA_AGENT_MODEL = undefined;
+				delete process.env.OLLAMA_AGENT_MODEL;
 			}
 			cleanup();
 		}
@@ -130,7 +130,7 @@ inference:
 			if (saved !== undefined) {
 				process.env.LOCAL_COMPLEXITY_THRESHOLD = saved;
 			} else {
-				process.env.LOCAL_COMPLEXITY_THRESHOLD = undefined;
+				delete process.env.LOCAL_COMPLEXITY_THRESHOLD;
 			}
 			cleanup();
 		}
@@ -154,7 +154,7 @@ inference:
 			if (saved !== undefined) {
 				process.env.LOCAL_TIMEOUT_MS = saved;
 			} else {
-				process.env.LOCAL_TIMEOUT_MS = undefined;
+				delete process.env.LOCAL_TIMEOUT_MS;
 			}
 			cleanup();
 		}
@@ -210,7 +210,7 @@ model: claude-opus-4-6
 			if (saved !== undefined) {
 				process.env.PHANTOM_MODEL = saved;
 			} else {
-				process.env.PHANTOM_MODEL = undefined;
+				delete process.env.PHANTOM_MODEL;
 			}
 			cleanup();
 		}
@@ -233,7 +233,7 @@ domain: old.example.com
 			if (saved !== undefined) {
 				process.env.PHANTOM_DOMAIN = saved;
 			} else {
-				process.env.PHANTOM_DOMAIN = undefined;
+				delete process.env.PHANTOM_DOMAIN;
 			}
 			cleanup();
 		}
@@ -255,7 +255,7 @@ name: phantom-dev
 			if (saved !== undefined) {
 				process.env.PHANTOM_NAME = saved;
 			} else {
-				process.env.PHANTOM_NAME = undefined;
+				delete process.env.PHANTOM_NAME;
 			}
 			cleanup();
 		}
@@ -277,7 +277,7 @@ name: phantom-dev
 			if (saved !== undefined) {
 				process.env.PHANTOM_NAME = saved;
 			} else {
-				process.env.PHANTOM_NAME = undefined;
+				delete process.env.PHANTOM_NAME;
 			}
 			cleanup();
 		}
@@ -299,7 +299,7 @@ name: phantom-dev
 			if (saved !== undefined) {
 				process.env.PHANTOM_NAME = saved;
 			} else {
-				process.env.PHANTOM_NAME = undefined;
+				delete process.env.PHANTOM_NAME;
 			}
 			cleanup();
 		}
@@ -322,7 +322,7 @@ role: swe
 			if (saved !== undefined) {
 				process.env.PHANTOM_ROLE = saved;
 			} else {
-				process.env.PHANTOM_ROLE = undefined;
+				delete process.env.PHANTOM_ROLE;
 			}
 			cleanup();
 		}
@@ -345,7 +345,7 @@ effort: max
 			if (saved !== undefined) {
 				process.env.PHANTOM_EFFORT = saved;
 			} else {
-				process.env.PHANTOM_EFFORT = undefined;
+				delete process.env.PHANTOM_EFFORT;
 			}
 			cleanup();
 		}
@@ -368,7 +368,7 @@ effort: high
 			if (saved !== undefined) {
 				process.env.PHANTOM_EFFORT = saved;
 			} else {
-				process.env.PHANTOM_EFFORT = undefined;
+				delete process.env.PHANTOM_EFFORT;
 			}
 			cleanup();
 		}
@@ -391,7 +391,7 @@ port: 3100
 			if (saved !== undefined) {
 				process.env.PORT = saved;
 			} else {
-				process.env.PORT = undefined;
+				delete process.env.PORT;
 			}
 			cleanup();
 		}
@@ -414,7 +414,7 @@ port: 3100
 			if (saved !== undefined) {
 				process.env.PORT = saved;
 			} else {
-				process.env.PORT = undefined;
+				delete process.env.PORT;
 			}
 			cleanup();
 		}
@@ -437,7 +437,7 @@ port: 3100
 			if (saved !== undefined) {
 				process.env.PORT = saved;
 			} else {
-				process.env.PORT = undefined;
+				delete process.env.PORT;
 			}
 			cleanup();
 		}

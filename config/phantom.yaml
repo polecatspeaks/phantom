@@ -8,8 +8,17 @@ inference:
   local_complexity_threshold: 500
   local_timeout_ms: 30000
 effort: max
-max_budget_usd: 0
+max_budget_usd: 0          # Hard cap per session (0 = unlimited)
+daily_budget_usd: 0        # Used in daily summary DM (0 = no budget set)
+budget_increment_alert_usd: 10  # Slack DM when daily spend crosses each $N increment (0 = disabled)
+budget_alert_hour_eastern: 8    # Hour (Eastern, 0-23) to send daily cost summary DM
 timeout_minutes: 240
+# Quiet hours: scheduler jobs use local inference during this window regardless of per-job setting.
+# Times are HH:MM (24-hour). Overnight ranges (e.g. 23:00-07:00) are supported.
+# quiet_hours:
+#   start: "23:00"
+#   end: "07:00"
+#   tz: "America/New_York"
 
 # Per-channel role assignment.
 # Keys are matched against the conversationId prefix (e.g. "discord:") and then

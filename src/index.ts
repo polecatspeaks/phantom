@@ -188,7 +188,7 @@ async function main(): Promise<void> {
 		const registry = mcpServer.getDynamicToolRegistry();
 
 		// Wire scheduler into the agent (Slack channel set later after channel init)
-		scheduler = new Scheduler({ db, runtime });
+		scheduler = new Scheduler({ db, runtime, quietHours: config.quiet_hours });
 
 		// Pass factories (not singletons) so each query() gets fresh MCP server instances.
 		// The underlying registries (DynamicToolRegistry, Scheduler) are singletons.
@@ -359,6 +359,52 @@ async function main(): Promise<void> {
 	}
 
 	setOnboardingStatusProvider(() => getOnboardingStatus(db).status);
+
+	// Wire cost alert dependencies now that both runtime and Slack channel are available
+	if (slackChannel && channelsConfig?.slack?.owner_user_id) {
+		const ownerUserId = channelsConfig.slack.owner_user_id;
+		runtime.getCostTracker().setAlertDeps({
+			sendDm: (userId, text) => slackChannel!.sendDm(userId, text).then(() => {}),
+			ownerUserId,
+			incrementAlertUsd: config.budget_increment_alert_usd ?? 10,
+			dailyBudgetUsd: config.daily_budget_usd ?? 0,
+		});
+
+		// Schedule daily cost summary at config.budget_alert_hour_eastern (default 08:00 Eastern)
+		const alertHour = config.budget_alert_hour_eastern ?? 8;
+		const scheduleDailyCostAlert = (): void => {
+			const nowUtc = Date.now();
+			// Eastern is UTC-5 (EST) or UTC-4 (EDT); use a fixed offset approach with the local TZ of the process.
+			// We calculate the next occurrence of alertHour:00 in US/Eastern by adjusting for the offset.
+			const easternOffsetMs = (() => {
+				// Detect EST vs EDT: if the month is Mar-Nov (rough DST window), use -4h, else -5h
+				const m = new Date().getMonth(); // 0-indexed
+				const isDst = m >= 2 && m <= 10;
+				return (isDst ? -4 : -5) * 60 * 60 * 1000;
+			})();
+			const easternNow = new Date(nowUtc + easternOffsetMs);
+			const nextFire = new Date(
+				Date.UTC(
+					easternNow.getUTCFullYear(),
+					easternNow.getUTCMonth(),
+					easternNow.getUTCDate(),
+					alertHour,
+					0,
+					0,
+					0,
+				) - easternOffsetMs,
+			);
+			if (nextFire.getTime() <= nowUtc) {
+				nextFire.setUTCDate(nextFire.getUTCDate() + 1);
+			}
+			const msUntilFire = nextFire.getTime() - nowUtc;
+			setTimeout(() => {
+				runtime.getCostTracker().fireDailySummary();
+				scheduleDailyCostAlert();
+			}, msUntilFire);
+		};
+		scheduleDailyCostAlert();
+	}
 
 	const conversationMessages = new Map<string, { user: string[]; assistant: string[] }>();
 

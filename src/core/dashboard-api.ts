@@ -7,6 +7,7 @@ export type ChannelEntry = {
 	sessionCount: number;
 	lastActiveAt: string | null;
 	online: boolean;
+	activeNow: boolean;
 };
 
 export type CostPeriod = "today" | "7d" | "30d" | "all";
@@ -102,13 +103,25 @@ export function getChannels(
 			)
 			.get(`${channel}:%`) as { cnt: number; last_active: string | null };
 
+		// Active = session touched in the last 5 minutes (catches trigger-based channels like Discord)
+		const activeRow = db
+			.query(
+				`SELECT COUNT(*) as cnt FROM sessions
+				 WHERE conversation_id LIKE ? AND last_active_at >= datetime('now', '-5 minutes')`,
+			)
+			.get(`${channel}:%`) as { cnt: number };
+
+		const activeNow = (activeRow?.cnt ?? 0) > 0;
+
 		return {
 			channel,
 			roleId,
 			roleName: roleDisplayName(roleId),
 			sessionCount: row?.cnt ?? 0,
 			lastActiveAt: row?.last_active ?? null,
-			online: liveChannels[channel] ?? false,
+			// online: true if socket connected (Slack) OR active in last 5 min (Discord/trigger)
+			online: (liveChannels[channel] ?? false) || activeNow,
+			activeNow,
 		};
 	});
 }

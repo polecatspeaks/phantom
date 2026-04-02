@@ -105,6 +105,12 @@ bun run typecheck
 
 All three must pass before submitting a PR: tests, lint, and typecheck.
 
+### Known test quirks
+
+**`bun mock.module()` bleed (Bun 1.x):** `mock.module()` patches are not automatically isolated between test files when they share module graph nodes. If you see unexpected mock values in a test that does not set up mocks, run that file in isolation (`bun test path/to/file.test.ts`) to confirm it passes on its own. This is a known Bun limitation. Tests in this repo are written to avoid the issue, but if you add tests that use `mock.module()`, make sure to restore or reset in `afterEach`/`afterAll`.
+
+**`process.env` cleanup:** Always use `delete process.env.VAR` (not `process.env.VAR = undefined`) to restore missing env vars in test cleanup. Assigning `undefined` stringifies to `"undefined"` and contaminates later tests.
+
 ## Submitting a Pull Request
 
 1. Fork the repo and create a branch from `main`.

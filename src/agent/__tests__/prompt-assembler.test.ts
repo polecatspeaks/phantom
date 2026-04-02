@@ -15,6 +15,9 @@ const baseConfig: PhantomConfig = {
 	},
 	effort: "max",
 	max_budget_usd: 0,
+	daily_budget_usd: 0,
+	budget_increment_alert_usd: 10,
+	budget_alert_hour_eastern: 8,
 	timeout_minutes: 240,
 };
 

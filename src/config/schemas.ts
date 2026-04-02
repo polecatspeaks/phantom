@@ -24,7 +24,19 @@ export const PhantomConfigSchema = z.object({
 		.default({}),
 	effort: z.enum(["low", "medium", "high", "max"]).default("max"),
 	max_budget_usd: z.number().min(0).default(0),
+	daily_budget_usd: z.number().min(0).default(0),
+	budget_increment_alert_usd: z.number().min(0).default(10),
+	budget_alert_hour_eastern: z.number().int().min(0).max(23).default(8),
 	timeout_minutes: z.number().min(1).default(240),
+	// Quiet hours: scheduler jobs use local inference (toolRequired=false) during this window.
+	// Times are HH:MM 24-hour strings. Range is inclusive start, exclusive end.
+	quiet_hours: z
+		.object({
+			start: z.string().regex(/^\d{2}:\d{2}$/).default("23:00"),
+			end: z.string().regex(/^\d{2}:\d{2}$/).default("07:00"),
+			tz: z.string().default("America/New_York"),
+		})
+		.optional(),
 	peers: z.record(z.string(), PeerConfigSchema).optional(),
 	// Map conversationId prefixes and channelIds to role IDs.
 	// Checked in order: conversationId prefix (e.g. "discord:") first, then channelId.

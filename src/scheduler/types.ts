@@ -44,9 +44,11 @@ export type ScheduledJob = {
 	lastRunStatus: RunStatus | null;
 	lastRunDurationMs: number | null;
 	lastRunError: string | null;
+	lastRunCostUsd: number | null;
 	nextRunAt: string | null;
 	runCount: number;
 	consecutiveErrors: number;
+	toolRequired: boolean;
 	deleteAfterRun: boolean;
 	createdAt: string;
 	createdBy: string;
@@ -59,6 +61,7 @@ export type JobCreateInput = {
 	schedule: Schedule;
 	task: string;
 	delivery?: JobDelivery;
+	toolRequired?: boolean;
 	deleteAfterRun?: boolean;
 	createdBy?: string;
 };
@@ -78,9 +81,11 @@ export type JobRow = {
 	last_run_status: string | null;
 	last_run_duration_ms: number | null;
 	last_run_error: string | null;
+	last_run_cost_usd: number | null;
 	next_run_at: string | null;
 	run_count: number;
 	consecutive_errors: number;
+	tool_required: number;
 	delete_after_run: number;
 	created_at: string;
 	created_by: string;

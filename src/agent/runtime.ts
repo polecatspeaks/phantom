@@ -96,6 +96,10 @@ export class AgentRuntime {
 		return this.lastTrackedFiles;
 	}
 
+	getCostTracker(): CostTracker {
+		return this.costTracker;
+	}
+
 	async handleMessage(
 		channelId: string,
 		conversationId: string,
